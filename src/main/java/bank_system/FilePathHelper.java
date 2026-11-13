@@ -2,12 +2,8 @@ package bank_system;
 
 import java.nio.file.Paths;
 
-/**
- * Ghép tên thư mục và tên file thành một đường dẫn.
- */
 public class FilePathHelper {
 
-  /** Không cho tạo đối tượng, lớp này chỉ có hàm static. */
   private FilePathHelper() {
   }
 
@@ -19,6 +15,6 @@ public class FilePathHelper {
    * @return đường dẫn đã ghép
    */
   public static String joinPath(String folder, String fileName) {
-    return Paths.get(folder, fileName).toString();
+    return folder + "\\" + fileName;
   }
 }
