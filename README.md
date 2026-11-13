@@ -1,79 +1,103 @@
-# Bài 2: Code Quality - Checkstyle (BankSystem)
+# Bài 3: CI/CD automation (BankSystem)
 
-## 1. Vì sao chọn Google Java Style
+Bài này dùng lại hệ thống BankSystem của Bài 2, chỉ thêm 2 thứ: Unit Tests
+(JUnit 5) và workflow GitHub Actions. Code chính trong `src/main/java`
+giữ nguyên như Bài 2, không sửa gì.
 
-Google Java Style là chuẩn code phổ biến nhất trong giới Java: thụt lề 2 khoảng
-trắng, dấu `{` mở cùng dòng, mọi khối `if`/`for`/`while` đều có ngoặc nhọn,
-dòng tối đa 100 ký tự, Javadoc đầy đủ. Chuẩn này có sẵn trong Checkstyle
-dưới dạng file `google_checks.xml` đi kèm plugin, nên không cần viết file
-cấu hình riêng, cả nhóm dùng chung một chuẩn là xong.
+## 1. Trong project có gì mới so với Bài 2
 
-## 2. Cấu hình Checkstyle trong pom.xml
+- `pom.xml`: thêm `junit-jupiter 5.9.2` (scope `test`, cùng version đã
+  dùng ở Bài 1) và `maven-surefire-plugin 3.0.0` để chạy test. Java vẫn 11,
+  Checkstyle vẫn như cũ, groupId/artifactId không đổi
+  (`com.practice.maven` / `bank-system` / `1.0-SNAPSHOT`).
+- `src/test/java/bank_system/` — 12 test, chia 3 file:
+  - `AccountTest.java` (6 test): nạp/rút tài khoản vãng lai, rút vượt số dư
+    và nạp tiền âm thì số dư không đổi, rút tiền tiết kiệm hợp lệ, rút tiết
+    kiệm vượt hạn mức 1000 hoặc làm số dư dưới 5000 thì không đổi, gọi trực
+    tiếp `doDepositing`/`doWithdrawing` thì ném đúng exception.
+  - `BankTest.java` (3 test): đọc danh sách khách hàng và tài khoản từ dữ
+    liệu text, đọc dữ liệu null thì không lỗi, sắp xếp thông tin khách hàng
+    theo CMND tăng dần.
+  - `TransactionTest.java` (3 test): `getTypeString` trả đúng tên 4 loại và
+    "Không rõ" với mã lạ, tóm tắt giao dịch chứa đủ loại và số tiền, thông
+    báo exception chứa đúng số tiền.
+- `.github/workflows/ci.yml`: workflow CI, xem mục 2.
+- `GIAI-THICH.md`: file giải thích của Bài 2, giữ nguyên.
 
-Dùng `maven-checkstyle-plugin` phiên bản `3.3.1`:
+## 2. Workflow làm gì, từng bước một
 
-- `configLocation` là `google_checks.xml` (file chuẩn Google đi kèm plugin).
-- Execution `checkstyle` gắn vào phase `verify`, goal `check`: mỗi lần chạy
-  `mvn clean verify`, Checkstyle tự kiểm tra toàn bộ code và làm fail build
-  nếu còn vi phạm.
-- `failsOnError=true`: có lỗi là build fail ngay, không cho qua.
-- `consoleOutput=true`: in lỗi ra console để đọc luôn, không cần mở file báo cáo.
+File `.github/workflows/ci.yml`, chạy khi có `push` hoặc `pull_request`
+(trên mọi branch):
 
-Chạy kiểm tra riêng (không cần build hết):
+1. `actions/checkout@v4`: tải code của repo về máy chạy CI.
+2. `actions/setup-java@v4`: cài JDK 11 (Temurin), bật cache Maven cho
+   chạy nhanh lần sau.
+3. `mvn -B verify`: chạy toàn bộ vòng đời Maven — biên dịch code, chạy
+   test (surefire), đóng gói ra file `.jar` (phase `package`), rồi chạy
+   Checkstyle (phase `verify`). Bước nào lỗi là cả workflow đỏ.
+4. `actions/upload-artifact@v4`: lưu file `target/*.jar` lại với tên
+   `bank-system-jar`, để tải về kiểm tra sau khi build xong.
 
-```bash
-mvn checkstyle:check
-```
+## 3. Chạy thử ở máy mình trước
 
-Chạy kiểm tra kèm build đầy đủ:
-
-```bash
-mvn verify
-```
-
-## 3. Các nhóm vi phạm đã sửa
-
-| Nhóm vi phạm | Ví dụ trong code gốc | Cách sửa |
-| --- | --- | --- |
-| Lỗi biên dịch | `Transaction.java` có một dòng bắt đầu bằng đúng một dấu `/` (không phải comment) | Viết lại thành Javadoc tử tế cho `getTypeString` |
-| Thiếu package | 8/9 file không có `package`, chỉ `Account.java` có | Thêm `package bank_system;` cho cả 9 file (không thì class trong package không dùng được class ở default package) |
-| Wildcard import, import thừa | `import java.util.*;`, `import java.io.*;` trong `Account.java`, `Bank.java` | Import cụ thể từng class, bỏ import không dùng; import xếp theo thứ tự bảng chữ cái (`java.*` trước, rồi `org.slf4j`) |
-| Đặt tên sai chuẩn | `checking_type`, `_accNum`, `B`, `list`, `c_list`, `get_type_string`, biến `iB`/`fB`/`a` | Hằng số `CHECKING_TYPE`/`SAVINGS_TYPE` (UPPER_SNAKE_CASE); field `accountNumber`, `balance`, `transactionList`, `customerList`; method `getTypeString`; biến `initialBalance`/`finalBalance`/`amount` |
-| Thụt lề, dấu ngoặc, dòng dài | `{` mở đầu dòng mới, hàm viết 1 dòng, `if` không có ngoặc nhọn, dòng dài hơn 200 ký tự | Thụt lề 2 spaces, `{` cùng dòng, mọi khối lệnh đều có ngoặc nhọn, mọi dòng ≤ 100 ký tự |
-| Magic number / magic string | `3`, `4`, `1000.0`, `5000.0`, `1`–`4` trong switch, `"\\d{9}"`, `"CHECKING"`/`"SAVINGS"` | Hằng số `Transaction.TYPE_*`, `MAX_WITHDRAWAL_AMOUNT`, `MIN_BALANCE`, `ID_NUMBER_PATTERN`, `MIN_ACCOUNT_PARTS`; dùng `Account.CHECKING_TYPE`/`SAVINGS_TYPE` |
-| Exception chung chung | `throws Exception`, `catch (Exception e)` | `doWithdrawing` ném `BankException`; catch `BankException` hoặc `IOException | NumberFormatException` |
-| Nối chuỗi trong vòng lặp | `s += ...` trong `getTransactionHistory`, `res += ...` trong `Bank` | Dùng `StringBuilder` |
-| Code trùng lặp, lồng if sâu | 2 hàm sắp xếp khách hàng trùng logic; `readCustomerList` lồng if 5 tầng | Gộp thành 1 hàm private chung `buildCustomersInfo(Comparator)`; tách `readCustomerList` thành các helper `processLine`, `addCustomer`, `addAccount`, `createAccount` |
-| Dùng anonymous class | `new Comparator<Customer>() {...}` | Lambda / `Comparator.comparingLong`, `thenComparingLong` |
-| In log ra console | `System.out.println`, `System.err.println` khắp nơi | Bỏ hết, dùng SLF4J `Logger` (xem mục 4) |
-| Thiếu Javadoc | Hầu hết class và public method không có Javadoc | Thêm Javadoc cho mọi class, constructor, public method (kèm `@param`, `@return`, `@throws`) |
-
-## 4. Logging: chọn mức log nào và ghi gì
-
-Dùng SLF4J (`Logger`) + Logback. Mỗi class có một logger riêng:
-
-```java
-private static final Logger logger = LoggerFactory.getLogger(TenClass.class);
-```
-
-| Mức | Dùng khi nào | Ghi những gì |
-| --- | --- | --- |
-| INFO | Sự kiện nghiệp vụ thành công, cần nhìn thấy khi chạy | Nạp/rút tiền thành công (số tài khoản + số tiền + số dư đầu → cuối); thêm khách hàng (họ tên); thêm tài khoản (số tài khoản + tên khách hàng) |
-| DEBUG | Chi tiết luồng chạy, chỉ cần khi debug | Bắt đầu đọc file, đang xử lý từng dòng, đang tổng hợp thông tin/summary, đang xử lý giao dịch, thêm/xóa tài khoản |
-| WARN | Vấn đề hồi phục được, chương trình vẫn chạy tiếp | Thêm tài khoản đã tồn tại (trùng); loại tài khoản lạ trong file; dòng trong file sai định dạng hoặc thiếu thông tin; luồng đầu vào là null |
-| ERROR | Lỗi, kèm exception để có stack trace | Nạp/rút tiền thất bại; lỗi đọc file (`IOException`, `NumberFormatException`) |
-
-Không log dữ liệu nhạy cảm: số CMND không bao giờ xuất hiện trong log
-(chỉ log họ tên và số tài khoản, là dữ liệu nghiệp vụ cần thiết).
-
-File `src/main/resources/logback.xml` cấu hình console appender, mỗi dòng log
-có timestamp, mức log, tên class và nội dung; mức mặc định của root logger
-là INFO (muốn thấy cả DEBUG thì đổi `level="INFO"` thành `level="DEBUG"`).
-
-## 5. Cách chạy
+Đứng ở thư mục gốc của project (chỗ có file `pom.xml`), chạy:
 
 ```bash
-mvn checkstyle:check   # chỉ kiểm tra code style
-mvn clean verify       # build đầy đủ (biên dịch + checkstyle ở phase verify)
+mvn clean verify
 ```
 
+Nếu thấy `Tests run: 12, Failures: 0, Errors: 0` và `BUILD SUCCESS` là
+xong. Lệnh này chạy cả test, package và checkstyle trong một lần.
+
+Lưu ý 2 cảnh báo vô hại, đã gặp ở Bài 2: Checkstyle in 2 dòng
+`[WARN] ... 'bank_system' must match pattern ... [PackageName]` vì tên
+package có dấu gạch dưới, nhưng kết quả cuối vẫn là
+`You have 0 Checkstyle violations` và `BUILD SUCCESS`. Đừng đổi tên
+package, đừng cố sửa 2 dòng đó.
+
+Nếu `mvn clean verify` báo lỗi không xóa được thư mục `target` (giống
+Bài 2), chạy `mvn verify` (bỏ chữ `clean`) là được.
+
+## 4. Đẩy lên GitHub và xem CI chạy
+
+1. Tạo repo mới trên GitHub (tên ví dụ `bank-system-ci`), chưa cần thêm
+   file gì trong đó.
+2. Ở máy mình, trong thư mục project, chạy:
+   - `git init`
+   - `git add .`
+   - `git commit -m "feat: add JUnit tests and GitHub Actions CI"`
+   - `git branch -M main`
+   - `git remote add origin <link repo vừa tạo>`
+   - `git push -u origin main`
+3. Vào repo trên GitHub, bấm tab **Actions**: sẽ thấy một lần chạy tên
+   `CI`, bấm vào xem từng bước xanh hay đỏ.
+4. Khi lần chạy xanh, bấm vào lần chạy đó, kéo xuống cuối trang sẽ thấy
+   mục **Artifacts** có `bank-system-jar`, bấm vào để tải file `.jar`
+   về. File này nằm trong `target/bank-system-1.0-SNAPSHOT.jar` ở máy
+   mình sau khi chạy `mvn verify`.
+
+## 5. Cố tình gây lỗi build để demo debug
+
+Đề bài yêu cầu chứng minh khả năng debug bằng log của GitHub Actions.
+Làm như sau, từng bước một:
+
+1. Mở file `src/test/java/bank_system/AccountTest.java`, sửa một giá trị
+   kỳ vọng cho sai, ví dụ trong test nạp tiền sửa `1500` thành `1600`.
+2. Commit và push lên GitHub như mục 4.
+3. Vào tab **Actions**, lần chạy mới sẽ đỏ (fail). Bấm vào lần chạy đỏ,
+   bấm vào job `build`, bấm vào bước `Build with Maven` để xem log.
+4. Trong log sẽ thấy dòng test lỗi, ví dụ
+   `AccountTest.depositCheckingTangSoDu: expected: <1500.0> but was: <1000.0>`
+   hoặc `Tests run: 12, Failures: 1`, và cuối log có `BUILD FAILURE`.
+   Đó chính là chỗ cần đọc để biết test nào sai và sai ở đâu.
+5. Sửa lại `1600` thành `1500`, commit và push lại. Lần chạy mới sẽ
+   xanh trở lại. Chụp lại 2 ảnh (lần đỏ + lần xanh) để nộp kèm là đủ
+   chứng minh phần demo debug.
+
+## 6. Chưa kiểm chứng được
+
+Máy làm file này không có JDK và Maven nên chưa chạy thử `mvn verify`
+được. Toàn bộ test, pom và workflow đã được đọc lại và đối chiếu từng
+tên method/field với code chính, nhưng kết quả chạy thật chỉ biết chắc
+khi Huyền chạy ở máy mình hoặc khi GitHub Actions chạy lần đầu. Nếu
+Actions báo đỏ, chụp log gửi lại để sửa.
