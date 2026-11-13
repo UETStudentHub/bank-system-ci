@@ -1,8 +1,6 @@
 name: CI
 
-on:
-  push:
-  pull_request:
+on: [push, pull_request]
 
 jobs:
   build:
@@ -28,3 +26,9 @@ jobs:
         with:
           name: bank-system-jar-${{ matrix.os }}
           path: target/*.jar
+      - name: Upload JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report-${{ matrix.os }}
+          path: target/site/jacoco/
