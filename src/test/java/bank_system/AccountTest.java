@@ -18,7 +18,7 @@ class AccountTest {
   void depositCheckingTangSoDu() {
     CheckingAccount account = new CheckingAccount(1001, 1000);
     account.deposit(500);
-    Assertions.assertEquals(1600, account.getBalance(), 0.001);
+    Assertions.assertEquals(1500, account.getBalance(), 0.001);
     Assertions.assertEquals(1, account.getTransactionList().size());
     Assertions.assertEquals(Transaction.TYPE_DEPOSIT_CHECKING,
         account.getTransactionList().get(0).getType());
