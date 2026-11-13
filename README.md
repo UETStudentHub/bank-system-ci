@@ -94,3 +94,4 @@ Làm như sau, từng bước một:
    xanh trở lại. Chụp lại 2 ảnh (lần đỏ + lần xanh) để nộp kèm là đủ
    chứng minh phần demo debug.
 
+*run#2*
