@@ -1,6 +1,9 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+    branches: [main]
 
 jobs:
   build:
@@ -32,3 +35,21 @@ jobs:
         with:
           name: jacoco-report-${{ matrix.os }}
           path: target/site/jacoco/
+
+  checkstyle-review:
+    name: Checkstyle review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Review code style
+        uses: dbelyaev/action-checkstyle@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          checkstyle_config: google_checks.xml
+          reporter: github-pr-review
+          level: error
+          fail_on_error: true
