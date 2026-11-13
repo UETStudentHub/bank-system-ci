@@ -94,10 +94,3 @@ Làm như sau, từng bước một:
    xanh trở lại. Chụp lại 2 ảnh (lần đỏ + lần xanh) để nộp kèm là đủ
    chứng minh phần demo debug.
 
-## 6. Chưa kiểm chứng được
-
-Máy làm file này không có JDK và Maven nên chưa chạy thử `mvn verify`
-được. Toàn bộ test, pom và workflow đã được đọc lại và đối chiếu từng
-tên method/field với code chính, nhưng kết quả chạy thật chỉ biết chắc
-khi Huyền chạy ở máy mình hoặc khi GitHub Actions chạy lần đầu. Nếu
-Actions báo đỏ, chụp log gửi lại để sửa.
