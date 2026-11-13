@@ -15,6 +15,6 @@ public class FilePathHelper {
    * @return đường dẫn đã ghép
    */
   public static String joinPath(String folder, String fileName) {
-    return folder + "\\" + fileName;
+    return Paths.get(folder, fileName).toString();
   }
 }
