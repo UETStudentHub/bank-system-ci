@@ -1,3 +1,5 @@
+// This is a very long comment line intentionally created to demonstrate a Checkstyle line length violation in the pull request review demo.
+
 package bank_system;
 
 import java.util.ArrayList;
